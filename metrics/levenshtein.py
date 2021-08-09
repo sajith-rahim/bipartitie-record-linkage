@@ -1,4 +1,4 @@
-def levenshtein(self, str1, str2):
+def levenshtein(str1, str2):
     if str1 is None:
         raise TypeError("str1 is None!")
     if str2 is None:
@@ -26,3 +26,8 @@ def levenshtein(self, str1, str2):
         v0, v1 = v1, v0
 
     return v0[len(str2)]
+
+
+def levenshtein_ratio(str1, str2):
+    ratio = 1.0*levenshtein(str1, str2) / max(len(str1), len(str2))
+    return 1.0 - ratio
