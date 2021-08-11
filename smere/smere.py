@@ -6,6 +6,8 @@ import scipy
 import scipy.stats
 import scipy.special
 
+import numpy as np
+
 from metrics.levenshtein import levenshtein_ratio
 from sampling.sampler import sample_index_from_multinomial_list, sample_key_from_multinomial_dict
 from utils.logger import Logger
@@ -101,13 +103,19 @@ class SMERE:
                         raise TypeError("Unsupported datatype in record!")
                     record[i] = _field
                 self.X.append(record[1:])
-                # print record[1:]
         except IOError as e:
             self.logger.error(e)
         except AttributeError as e:
             self.logger.error(e)
+        except Exception as e:
+            self.logger.error(e)
+
 
         self.logger.info("Number of records read = {}".format(len(self.X)))
+
+        self.X1 = self.X
+
+        self.x = np.array(self.X)
 
         self.M_l = [set([record[l] for record in self.X]) for l in range(len(self.fields))]
 
@@ -216,29 +224,26 @@ class SMERE:
         if self.fields[l] == str:
             return self.c[0] * levenshtein_ratio(x_value, y_value)
         else:
-            print("{}:{}-{}:{}".format(x_value,type(x_value),y_value,type(y_value)))
+            # print("{}:{}-{}:{}".format(x_value,type(x_value),y_value,type(y_value)))
             return self.c[1] * (x_value - y_value) * (x_value - y_value)
 
     def precompute_distortions(self):
         for l in range(len(self.fields)):
-            for y_value in self.M_l[l]:
-                self.distortion[(l, y_value)] = defaultdict(float)
-                for x_value in self.M_l[l]:
-                    self.distortion[(l, y_value)][x_value] = self.score(l, x_value, y_value)
-                sum_ly = sum(self.distortion[(l, y_value)].values())
-                for x_value in self.M_l[l]:
-                    self.distortion[(l, y_value)][x_value] /= sum_ly
+            for field_val in self.M_l[l]: # field_val in field
+                self.distortion[(l, field_val)] = defaultdict(float)
+                for field_other_val in self.M_l[l]:
+                    self.distortion[(l, field_val)][field_other_val] = self.score(l, field_other_val, field_val)
+                sum_ = sum(self.distortion[(l, field_val)].values())
+                for field_other_val in self.M_l[l]:
+                    self.distortion[(l, field_val)][field_other_val] /= sum_
+
 
     def precompute_empiricals(self):
+
         for l in range(len(self.fields)):
-            self.empirical.append(defaultdict(float))
-        for i in range(len(self.X)):
-            for l in range(len(self.fields)):
-                self.empirical[l][self.X[i][l]] += 1.0
-        for l in range(len(self.fields)):
-            sum_l = sum(self.empirical[l].values())
-            for value in self.empirical[l].keys():
-                self.empirical[l][value] /= sum_l
+            f ,counts = np.unique(self.x[:, l], return_counts=True)
+            self.empirical.append(dict(zip(f, counts/np.sum(counts))))
+
 
     def fit(self, max_iter=100):
 
@@ -250,7 +255,7 @@ class SMERE:
 
         iter = 0
         while True:
-
+            iter = iter + 1
             for i in range(len(self.X)):
                 self.resample_lambda(i)
 

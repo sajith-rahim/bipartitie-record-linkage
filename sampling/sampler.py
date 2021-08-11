@@ -1,7 +1,5 @@
 import random
 
-from utils.util import list_to_unit_vector
-
 
 def sample_index_from_multinomial_list(multinomial):
     mark = random.random()
@@ -20,5 +18,3 @@ def sample_key_from_multinomial_dict(multinomial):
         cummulative += multinomial[k]
         if cummulative > mark:
             return k
-
-
